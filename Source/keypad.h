@@ -9,9 +9,9 @@
 #define N_row 4
 
 /* Keypad Port Configurations */
-#define KEYPAD_PORT_OUT PORTA
-#define KEYPAD_PORT_IN  PINA
-#define KEYPAD_PORT_DIR DDRA 
+#define KEYPAD_PORT_OUT PORTC
+#define KEYPAD_PORT_IN  PINC
+#define KEYPAD_PORT_DIR DDRC
 
 /*
  * Function responsible for getting the pressed keypad key

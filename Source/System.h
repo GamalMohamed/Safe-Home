@@ -2,10 +2,10 @@
 #include "Keypad.h"
 #include "Buzzer.h"
 #include "PIR.h"
+#include "RFID.h"
 
 
 bool SystemActive;
-bool Locked;
 String PIN;
 String PAC;
 String Factory_PIN;
@@ -223,7 +223,6 @@ void InitializeSystem()
   Factory_PIN = "123";
   PAC = "999";
   PIN = Factory_PIN;
-  Locked = false;
 
   // Welcome Message!
   DisplayMessage("Welcome to Safe\n Home system!");

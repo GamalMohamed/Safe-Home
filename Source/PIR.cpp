@@ -2,19 +2,30 @@
 
 void PIR_init(void)
 {
-  CLEAR_BIT(INPUTPORT_DIR,INPUTPIN); //make PE4 as input pin
+  CLEAR_BIT(INPUTPORT_DIR,INPUTPIN1); 
+  CLEAR_BIT(INPUTPORT_DIR,INPUTPIN2); 
+  CLEAR_BIT(INPUTPORT_DIR,INPUTPIN3); 
 }
 
 
-bool PIR_detectMotion(void)
+int PIR_detectMotion(void)
 {
-	if(BIT_IS_SET(INPUTPORT,INPUTPIN))
+	if(BIT_IS_SET(INPUTPORT,INPUTPIN1))
 	{
-		return true;
+		return 1;
 	}
-	else
+	else if(BIT_IS_SET(INPUTPORT,INPUTPIN2))
 	{
-		return false;
+		return 2;
 	}
+  else if(BIT_IS_SET(INPUTPORT,INPUTPIN3))
+  {
+    return 3;
+  }
+  else
+  {
+    return 99;
+  }
+
 	
 }

@@ -1,15 +1,16 @@
 #ifndef Buzzer_H_
 #define Buzzer_H_
 
-#include "PIR.h"
+#include "common_macros.h"
 
-#define OUTPUTPIN    PB4
-#define OUTPUTPORT    PORTB
+#define OUTPUTPIN      PB0		  //Pin 53
+#define OUTPUTPORT     PORTB
 #define OUTPUTPORT_DIR DDRB
+
 
 void Buzzer_init()
 {
-    SET_BIT(OUTPUTPORT,OUTPUTPIN);
+    SET_BIT(OUTPUTPORT_DIR,OUTPUTPIN);
 }
 
 

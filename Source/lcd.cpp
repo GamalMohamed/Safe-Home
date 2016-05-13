@@ -1,92 +1,316 @@
 #include "lcd.h"
 
-void LCD_init(void)
+#define LCD_e_delay()   __asm__ __volatile__( "rjmp 1f\n 1:" );
+#define LCD_e_toggle()  toggle_e()
+
+/* delay for a minimum of <us> microseconds, the number of loops is calculated at compile-time from MCU clock frequency */
+#define delay(us)  _delayFourCycles( ( ( 1*(F_CPU/4000) )*us)/1000 )
+
+
+#if LCD_LINES==1
+#define LCD_FUNCTION_DEFAULT    LCD_FUNCTION_4BIT_1LINE
+#else
+#define LCD_FUNCTION_DEFAULT    LCD_FUNCTION_4BIT_2LINES
+#endif
+
+static uint8_t dataport = 0;
+
+/* delay loop for small accurate delays: 16-bit counter, 4 cycles/loop */
+static inline void _delayFourCycles(unsigned int __count)
 {
-	LCD_DATA_PORT_DIR = 0xFF; /* Configure the data port as output port */ 
-	LCD_CTRL_PORT_DIR |= (1<<E) | (1<<RS) | (1<<RW); /* Configure the control pins(E,RS,RW) as output pins */
-	
-	LCD_sendCommand(TWO_LINE_LCD_Eight_BIT_MODE); /* use 2-line lcd + 8-bit Data Mode + 5*7 dot display Mode */
-	
-	LCD_sendCommand(CURSOR_OFF); /* cursor off */
-	
-	LCD_sendCommand(CLEAR_COMMAND); /* clear LCD at the beginning */
+  if ( __count == 0 )
+    __asm__ __volatile__( "rjmp 1f\n 1:" );    // 2 cycles
+  else
+    __asm__ __volatile__ (
+      "1: sbiw %0,1" "\n\t"
+      "brne 1b"                              // 4 cycles/loop
+      : "=w" (__count)
+      : "0" (__count)
+    );
 }
 
-void LCD_sendCommand(uint8 command)
+/* toggle Enable Pin to initiate write */
+static void toggle_e(void)
 {
-	CLEAR_BIT(LCD_CTRL_PORT,RS); /* Instruction Mode RS=0 */
-	CLEAR_BIT(LCD_CTRL_PORT,RW); /* write data to LCD so RW=0 */
-	_delay_ms(1); /* delay for processing Tas = 50ns */
-	SET_BIT(LCD_CTRL_PORT,E); /* Enable LCD E=1 */
-	_delay_ms(1); /* delay for processing Tpw - Tdws = 190ns */
-	LCD_DATA_PORT = command; /* out the required command to the data bus D0 --> D7 */
-	_delay_ms(1); /* delay for processing Tdsw = 100ns */
-	CLEAR_BIT(LCD_CTRL_PORT,E); /* disable LCD E=0 */
-	_delay_ms(1); /* delay for processing Th = 13ns */
+  pcf8574_setoutputpinhigh(LCD_PCF8574_DEVICEID, LCD_E_PIN);
+  //LCD_e_delay();
+  _delay_ms(1);
+  pcf8574_setoutputpinlow(LCD_PCF8574_DEVICEID, LCD_E_PIN);
 }
 
-void LCD_displayCharacter(uint8 data)
+
+/* Low-level function to write byte to LCD controller
+  Input:    data    byte to write to LCD
+             rs     1: write data
+                    0: write instruction */
+static void LCD_write(uint8_t data, uint8_t rs)
 {
-	SET_BIT(LCD_CTRL_PORT,RS); /* Data Mode RS=1 */
-	CLEAR_BIT(LCD_CTRL_PORT,RW); /* write data to LCD so RW=0 */
-	_delay_ms(1); /* delay for processing Tas = 50ns */
-	SET_BIT(LCD_CTRL_PORT,E); /* Enable LCD E=1 */
-	_delay_ms(1); /* delay for processing Tpw - Tdws = 190ns */
-	LCD_DATA_PORT = data; /* out the required data char to the data bus D0 --> D7 */
-	_delay_ms(1); /* delay for processing Tdsw = 100ns */
-	CLEAR_BIT(LCD_CTRL_PORT,E); /* disable LCD E=0 */
-	_delay_ms(1); /* delay for processing Th = 13ns */	
+  if (rs) /* write data        (RS=1, RW=0) */
+    dataport |= _BV(LCD_RS_PIN);
+  else /* write instruction (RS=0, RW=0) */
+    dataport &= ~_BV(LCD_RS_PIN);
+  dataport &= ~_BV(LCD_RW_PIN);
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+
+  /* output high nibble first */
+  dataport &= ~_BV(LCD_DATA3_PIN);
+  dataport &= ~_BV(LCD_DATA2_PIN);
+  dataport &= ~_BV(LCD_DATA1_PIN);
+  dataport &= ~_BV(LCD_DATA0_PIN);
+  if (data & 0x80) dataport |= _BV(LCD_DATA3_PIN);
+  if (data & 0x40) dataport |= _BV(LCD_DATA2_PIN);
+  if (data & 0x20) dataport |= _BV(LCD_DATA1_PIN);
+  if (data & 0x10) dataport |= _BV(LCD_DATA0_PIN);
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+  LCD_e_toggle();
+
+  /* output low nibble */
+  dataport &= ~_BV(LCD_DATA3_PIN);
+  dataport &= ~_BV(LCD_DATA2_PIN);
+  dataport &= ~_BV(LCD_DATA1_PIN);
+  dataport &= ~_BV(LCD_DATA0_PIN);
+  if (data & 0x08) dataport |= _BV(LCD_DATA3_PIN);
+  if (data & 0x04) dataport |= _BV(LCD_DATA2_PIN);
+  if (data & 0x02) dataport |= _BV(LCD_DATA1_PIN);
+  if (data & 0x01) dataport |= _BV(LCD_DATA0_PIN);
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+  LCD_e_toggle();
+
+  /* all data pins high (inactive) */
+  dataport |= _BV(LCD_DATA0_PIN);
+  dataport |= _BV(LCD_DATA1_PIN);
+  dataport |= _BV(LCD_DATA2_PIN);
+  dataport |= _BV(LCD_DATA3_PIN);
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
 }
 
-void LCD_displayString(const char *Str)
+/* Low-level function to read byte from LCD controller
+   Input:      rs    1: read data
+                     0: read busy flag / address counter */
+static uint8_t LCD_read(uint8_t rs)
 {
-	uint8 i = 0;
-	while(Str[i] != '\0')
-	{
-		LCD_displayCharacter(Str[i]);
-		i++;
-	}
+  uint8_t data;
+
+  if (rs) /* write data        (RS=1, RW=0) */
+    dataport |= _BV(LCD_RS_PIN);
+  else /* write instruction (RS=0, RW=0) */
+    dataport &= ~_BV(LCD_RS_PIN);
+  dataport |= _BV(LCD_RW_PIN);
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+
+  pcf8574_setoutputpinhigh(LCD_PCF8574_DEVICEID, LCD_E_PIN);
+  LCD_e_delay();
+  data = pcf8574_getoutputpin(LCD_PCF8574_DEVICEID, LCD_DATA0_PIN) << 4;     /* read high nibble first */
+  pcf8574_setoutputpinlow(LCD_PCF8574_DEVICEID, LCD_E_PIN);
+
+  LCD_e_delay();                       /* Enable 500ns low       */
+
+  pcf8574_setoutputpinhigh(LCD_PCF8574_DEVICEID, LCD_E_PIN);
+  LCD_e_delay();
+  data |= pcf8574_getoutputpin(LCD_PCF8574_DEVICEID, LCD_DATA0_PIN) & 0x0F;   /* read low nibble        */
+  pcf8574_setoutputpinlow(LCD_PCF8574_DEVICEID, LCD_E_PIN);
+
+  return data;
 }
 
-void LCD_goToRowColumn(uint8 row,uint8 col)
+/* loops while lcd is busy, returns address counter */
+static uint8_t LCD_waitbusy(void)
 {
-	uint8 Address;
-	
-	/* first of all calculate the required address */
-	switch(row)
-	{
-		case 0:
-				Address=col;
-				break;
-		case 1:
-				Address=col+0x40;
-				break;
-		case 2:
-				Address=col+0x10;
-				break;
-		case 3:
-				Address=col+0x50;
-				break;
-	}					
-	/* to write to a specific address in the LCD 
-	 * we need to apply the corresponding command 0b10000000+Address */
-	LCD_sendCommand(Address | SET_CURSOR_LOCATION); 
+  register uint8_t c;
+
+  /* wait until busy flag is cleared */
+  while ( (c = LCD_read(0)) & (1 << LCD_BUSY)) {}
+
+  /* the address counter is updated 4us after the busy flag is cleared */
+  delay(2);
+
+  /* now read the address counter */
+  return (LCD_read(0));  // return address counter
+
 }
 
-void LCD_displayStringRowColumn(uint8 row,uint8 col,const char *Str)
+/* Move cursor to the start of next line or to the first line if the cursor is already on the last line */
+static inline void LCD_newline(uint8_t pos)
 {
-	LCD_goToRowColumn(row,col); /* go to to the required LCD position */
-	LCD_displayString(Str); /* display the string */
+  register uint8_t addressCounter;
+
+
+#if LCD_LINES==1
+  addressCounter = 0;
+#endif
+#if LCD_LINES==2
+  if ( pos < (LCD_START_LINE2) )
+    addressCounter = LCD_START_LINE2;
+  else
+    addressCounter = LCD_START_LINE1;
+#endif
+#if LCD_LINES==4
+  if ( pos < LCD_START_LINE3 )
+    addressCounter = LCD_START_LINE2;
+  else if ( (pos >= LCD_START_LINE2) && (pos < LCD_START_LINE4) )
+    addressCounter = LCD_START_LINE3;
+  else if ( (pos >= LCD_START_LINE3) && (pos < LCD_START_LINE2) )
+    addressCounter = LCD_START_LINE4;
+  else
+    addressCounter = LCD_START_LINE1;
+#endif
+  LCD_command((1 << LCD_DDRAM) + addressCounter);
+
 }
 
-void LCD_intgerToString(int data)
+
+
+void LCD_init(uint8_t dispAttr)
 {
-   char buff[16]; /* String to hold the ascii result */
-   itoa(data,buff,10); /* 10 for decimal */
-   LCD_displayString(buff);
+#if LCD_PCF8574_INIT == 1
+  pcf8574_init();
+#endif
+
+  dataport = 0;
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+
+  _delay_ms(10);        /* wait 16ms or more after power-on       */
+
+  /* initial write to lcd is 8bit */
+  dataport |= _BV(LCD_DATA1_PIN);  // _BV(LCD_FUNCTION)>>4;
+  dataport |= _BV(LCD_DATA0_PIN);  // _BV(LCD_FUNCTION_8BIT)>>4;
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+
+  LCD_e_toggle();
+  _delay_ms(1);         /* delay, busy flag can't be checked here */
+
+  /* repeat last command */
+  LCD_e_toggle();
+  _delay_ms(1);           /* delay, busy flag can't be checked here */
+
+  /* repeat last command a third time */
+  LCD_e_toggle();
+  _delay_ms(1);           /* delay, busy flag can't be checked here */
+
+  /* now configure for 4bit mode */
+  dataport &= ~_BV(LCD_DATA0_PIN);
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+  LCD_e_toggle();
+  _delay_ms(1);           /* some displays need this additional delay */
+
+  /* from now the LCD only accepts 4 bit I/O, we can use lcd_command() */
+
+  LCD_command(LCD_FUNCTION_DEFAULT);      /* function set: display lines  */
+
+  LCD_command(LCD_DISP_OFF);              /* display off                  */
+  LCD_clearScreen();                           /* display clear                */
+  LCD_command(LCD_MODE_DEFAULT);          /* set entry mode               */
+  LCD_command(dispAttr);                  /* display/cursor control       */
+  LCD_led(0);
+}
+
+void LCD_command(uint8_t cmd)
+{
+  LCD_waitbusy();
+  LCD_write(cmd, 0);
+}
+
+void LCD_data(uint8_t data)
+{
+  LCD_waitbusy();
+  LCD_write(data, 1);
+}
+
+void LCD_gotoxy(uint8_t x, uint8_t y)
+{
+#if LCD_LINES==1
+  LCD_command((1 << LCD_DDRAM) + LCD_START_LINE1 + x);
+#endif
+#if LCD_LINES==2
+  if ( y == 0 )
+    LCD_command((1 << LCD_DDRAM) + LCD_START_LINE1 + x);
+  else
+    LCD_command((1 << LCD_DDRAM) + LCD_START_LINE2 + x);
+#endif
+#if LCD_LINES==4
+  if ( y == 0 )
+    LCD_command((1 << LCD_DDRAM) + LCD_START_LINE1 + x);
+  else if ( y == 1)
+    LCD_command((1 << LCD_DDRAM) + LCD_START_LINE2 + x);
+  else if ( y == 2)
+    LCD_command((1 << LCD_DDRAM) + LCD_START_LINE3 + x);
+  else /* y==3 */
+    LCD_command((1 << LCD_DDRAM) + LCD_START_LINE4 + x);
+#endif
+
+}
+
+int LCD_getxy(void)
+{
+  return LCD_waitbusy();
 }
 
 void LCD_clearScreen(void)
 {
-	LCD_sendCommand(CLEAR_COMMAND); //clear display 
+  LCD_command(1 << LCD_CLR);
 }
+
+void LCD_led(uint8_t onoff)
+{
+  if (onoff)
+    dataport &= ~_BV(LCD_LED_PIN);
+  else
+    dataport |= _BV(LCD_LED_PIN);
+  pcf8574_setoutput(LCD_PCF8574_DEVICEID, dataport);
+}
+
+void LCD_home(void)
+{
+  LCD_command(1 << LCD_HOME);
+}
+
+void LCD_putc(char c)
+{
+  uint8_t pos;
+
+  pos = LCD_waitbusy();   // read busy-flag and address counter
+  if (c == '\n')
+  {
+    LCD_newline(pos);
+  }
+  else
+  {
+#if LCD_WRAP_LINES==1
+#if LCD_LINES==1
+    if ( pos == LCD_START_LINE1 + LCD_DISP_LENGTH ) {
+      LCD_write((1 << LCD_DDRAM) + LCD_START_LINE1, 0);
+    }
+#elif LCD_LINES==2
+    if ( pos == LCD_START_LINE1 + LCD_DISP_LENGTH ) {
+      LCD_write((1 << LCD_DDRAM) + LCD_START_LINE2, 0);
+    } else if ( pos == LCD_START_LINE2 + LCD_DISP_LENGTH ) {
+      LCD_write((1 << LCD_DDRAM) + LCD_START_LINE1, 0);
+    }
+#elif LCD_LINES==4
+    if ( pos == LCD_START_LINE1 + LCD_DISP_LENGTH ) {
+      LCD_write((1 << LCD_DDRAM) + LCD_START_LINE2, 0);
+    } else if ( pos == LCD_START_LINE2 + LCD_DISP_LENGTH ) {
+      LCD_write((1 << LCD_DDRAM) + LCD_START_LINE3, 0);
+    } else if ( pos == LCD_START_LINE3 + LCD_DISP_LENGTH ) {
+      LCD_write((1 << LCD_DDRAM) + LCD_START_LINE4, 0);
+    } else if ( pos == LCD_START_LINE4 + LCD_DISP_LENGTH ) {
+      LCD_write((1 << LCD_DDRAM) + LCD_START_LINE1, 0);
+    }
+#endif
+    LCD_waitbusy();
+#endif
+    LCD_write(c, 1);
+  }
+
+}
+
+void LCD_puts(const char *s)
+{
+  register char c;
+
+  while ( (c = *s++) ) {
+    LCD_putc(c);
+  }
+
+}
+

@@ -1,33 +1,78 @@
-#ifndef KEYPAD_H_
-#define KEYPAD_H_
-
-#include "std_types.h"
-#include "micro_config.h"
 #include "common_macros.h"
 
-#define N_col 3
-#define N_row 4
+#define rows    4
+#define columns 3
 
-/* Keypad Port Configurations */
-#define KEYPAD_PORT_OUT PORTC
-#define KEYPAD_PORT_IN  PINC
-#define KEYPAD_PORT_DIR DDRC
+typedef unsigned char uint8;
 
-/*
- * Function responsible for getting the pressed keypad key
- */
-uint8 KeyPad_getPressedKey(void);
+const uint8 Output[rows] = {49, 48, 47, 46};
+const uint8 Input[columns] = {45, 44, 43};
 
-/*
- * Function responsible for mapping the switch number in the keypad to 
- * its corresponding functional number in the proteus for 4x3 keypad 
- */
-uint8 KeyPad_4x3_adjustKeyNumber(uint8 button_number);
 
-/*
- * Function responsible for mapping the switch number in the keypad to 
- * its corresponding functional number in the proteus for 4x4 keypad  
- */
-uint8 KeyPad_4x4_adjustKeyNumber(uint8 button_number);
 
-#endif /* KEYPAD_H_ */
+void KEYPAD_init()
+{
+  for (int i = 0; i < rows; i++)
+  {
+    pinMode(Output[i], OUTPUT);
+  }
+  for (int i = 0; i < columns; i++)
+  {
+    pinMode(Input[i], INPUT_PULLUP);
+  }
+}
+
+
+uint8 KEYPAD_getkey()
+{
+  uint8 C = 0, R = 0;
+  static bool no_press_flag = 0;
+  for (int i = 0; i < columns; i++)
+  {
+    if (digitalRead(Input[i]) == HIGH);
+    else
+      break;
+
+    if (i == (columns - 1))
+    {
+      no_press_flag = 1;
+      C = 0;
+      R = 0;
+    }
+  }
+
+  if (no_press_flag == 1)
+  {
+    for (int r = 0; r < rows; r++)
+      digitalWrite(Output[r], LOW);
+
+    for (C = 0; C < columns; C++)
+    {
+      if (digitalRead(Input[C]) == HIGH)
+        continue;
+      else
+      {
+        for (R = 0; R < rows; R++)
+        {
+          digitalWrite(Output[R], HIGH);
+          if (digitalRead(Input[C]) == HIGH)
+          {
+            no_press_flag = 0;
+
+            for (int i = 0; i < rows; i++)
+              digitalWrite(Output[i], LOW);
+
+            return R * 3 + C+1;
+          }
+        }
+      }
+    }
+  }
+
+  return 99;
+}
+
+
+
+
+

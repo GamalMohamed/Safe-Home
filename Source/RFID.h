@@ -7,12 +7,13 @@
    We DEFINE the TAG ID as the 10 ascii chars + 2 ascii chars of the checksum -> total 12 chars/bytes [we remove the start/end bytes]
 */
 
-#define RX 13
-#define TX 255
+#define RX 13   // Pin 13
+#define TX 255  // Not connected to any pin ! 
 #define ID_length 14
 #define Start_byte 2
 #define End_byte 3
-
+#define MAXTagsNum 4
+ 
 
 void RFID_init();
 String RFID_readID();

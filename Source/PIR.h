@@ -11,6 +11,7 @@
 #define  INPUTPORT_DIR DDRB
 
 
+
 void PIR_init(void);
 int PIR_detectMotion(void);
 

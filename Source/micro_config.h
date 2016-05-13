@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-
+#ifndef NOTHING
+#define NOTHING 99
+#endif
 
 #endif /* MICRO_CONFIG_H_ */

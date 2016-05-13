@@ -24,7 +24,7 @@ int PIR_detectMotion(void)
   }
   else
   {
-    return 99;
+    return NOTHING;
   }
 
 	

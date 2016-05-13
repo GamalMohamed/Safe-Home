@@ -59,7 +59,7 @@ uint8 KEYPAD_getkey()
     }
   }
 
-  return 99;
+  return NOTHING;
 }
 
 

@@ -1,15 +1,16 @@
 #include "System.h"
 
-int main()
+void setup()
 {
   InitializeSystem();
 
-  while (1)
-  {
-    IdleSystem();
-
-    ActiveSystem();
-  }
-
 }
+
+void loop()
+{
+  IdleSystem();
+
+  ActiveSystem();
+}
+
 

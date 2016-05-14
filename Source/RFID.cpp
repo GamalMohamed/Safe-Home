@@ -1,10 +1,11 @@
 #include "RFID.h"
 
-
 static char c;
 static String Parsed_TagID, Stored_TagID;
 
-static SoftwareSerial UART_PORT(RX , TX);  // RX port : 13 - TX port : 255 (i.e. do not need any TX port)
+
+
+static SoftwareSerial UART_PORT(RX , TX);
 
 
 static bool CheckSum_TagID(String TagID)
@@ -61,6 +62,7 @@ String RFID_readID()
       }
     }
   }
+
 
   return Stored_TagID;
 

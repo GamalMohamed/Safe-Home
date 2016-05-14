@@ -52,7 +52,7 @@ uint8 KEYPAD_getkey()
               CLEAR_BIT(OUTPUTPORT, i);
             }
 
-            return R * 3 + C;
+            return R * 3 + C+1;
           }
         }
       }

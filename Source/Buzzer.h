@@ -14,7 +14,7 @@ void Buzzer_init()
 }
 
 
-void Alert(long duration, int freq) 
+void Alert(long duration,int freq) 
 {
     duration = duration *1000;
     int period = (1.0 / freq) * 1000000;

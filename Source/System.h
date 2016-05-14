@@ -13,6 +13,7 @@ String MasterCardID;
 String StoredTags[MAXTagsNum];
 
 
+
 /*************************************** Utility functions *********************************************/
 inline void ClearScreen()
 {
@@ -34,10 +35,11 @@ inline uint8 GetKey()
   return KEYPAD_getkey();
 }
 
-String GetInput(int inputLength = 6)
+String GetInput(int inputLength = 2)
 {
   uint8 key = NOTHING;
   String input = "";
+
   for (int i = 0; i < inputLength; i++)
   {
     while (1)
@@ -46,9 +48,11 @@ String GetInput(int inputLength = 6)
       if (key != NOTHING)
         break;
     }
-    _delay_ms(150);
     input += key;
+    _delay_ms(500);
   }
+  DisplayMessage(input.c_str());
+  _delay_ms(1000);
   return input;
 }
 
@@ -191,13 +195,13 @@ void ResetPIN()
   _delay_ms(1000);
 
   ClearScreen();
-  DisplayMessage("Enter old PIN");
+  DisplayMessage("Enter old PIN\n");
   String Input = GetInput();
 
   if (Input == PIN)
   {
     ClearScreen();
-    DisplayMessage("Enter new PIN");
+    DisplayMessage("Enter new PIN\n");
     PIN = GetInput();
 
     ClearScreen();
@@ -219,7 +223,7 @@ void FactorySettings()
   _delay_ms(1000);
 
   ClearScreen();
-  DisplayMessage("Enter PAC");
+  DisplayMessage("Enter PAC\n");
   String Input = GetInput();
 
   if (Input == PAC)
@@ -239,7 +243,7 @@ void FactorySettings()
   }
 }
 
-void IntrusionAlert(bool intrusion)
+void IntrusionAlert(bool intrusion, bool room)
 {
   // Activate Buzzer!
   if (intrusion)
@@ -248,10 +252,13 @@ void IntrusionAlert(bool intrusion)
     {
       if (IDRequest())
       {
-        DeactivateSystem();
-        return;
+        if(!room)
+        {
+          DeactivateSystem();
+          IDRequest();
+          return;
+        }
       }
-
       Alert(300, 160);
       _delay_ms(150);
     }
@@ -261,6 +268,7 @@ void IntrusionAlert(bool intrusion)
 void DetectMotion()
 {
   bool intrusion = false;
+  bool room=false;
   switch (PIR_detectMotion())
   {
     case 1:
@@ -273,19 +281,21 @@ void DetectMotion()
       ClearScreen();
       DisplayMessage("RM1 Intrusion");
       intrusion = true;
+      room=true;
       break;
 
     case 3:
       ClearScreen();
       DisplayMessage("RM2 Intrusion");
       intrusion = true;
+      room=true;
       break;
 
     default:
       intrusion = false;
   }
 
-  IntrusionAlert(intrusion);
+  IntrusionAlert(intrusion,room);
 }
 
 void InitializeSystem()
@@ -300,10 +310,10 @@ void InitializeSystem()
   SystemActive = false; // System by default is inactive
 
   // Manufacture's settings
-  Factory_PIN = "159357";
-  PAC = "333999";
-  MasterCardID = "BlaBla";
-  StoredTags[0] = "BlaBla2";
+  Factory_PIN = "23";
+  PAC = "99";
+  MasterCardID = "3800700780CF";
+  StoredTags[0] = "01002BC8EB09";
 
   PIN = Factory_PIN;
 
@@ -330,8 +340,9 @@ void IdleSystem()
     uint8 key = GetKey();
     if (key == 1)  // '1'
     {
+      _delay_ms(500);
       ClearScreen();
-      DisplayMessage("Enter PIN");
+      DisplayMessage("Enter PIN\n");
 
       if (PIN == GetInput())
       {
@@ -376,9 +387,10 @@ void ActiveSystem()
 
     if (SystemActive)
     {
-      if (IDRequest)
+      if (IDRequest())
       {
         DeactivateSystem();
+        IDRequest();
         return;
       }
     }

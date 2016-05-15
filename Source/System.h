@@ -46,13 +46,16 @@ String GetInput(int inputLength = 2)
     {
       key = KEYPAD_getkey();
       if (key != NOTHING)
+      {
+        DisplayMessage("*");
         break;
+      }
     }
     input += key;
     _delay_ms(500);
   }
-  DisplayMessage(input.c_str());
-  _delay_ms(1000);
+  //DisplayMessage(input.c_str());
+  //_delay_ms(1000);
   return input;
 }
 
@@ -127,58 +130,6 @@ bool IDRequest()
   }
 }
 
-/*
-  bool DeactivateSystem()
-  {
-  String Input = GetInput();
-
-  if (Input == PIN)
-  {
-    SystemActive = false;
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-
-  }
-
-  bool DectivateRequest()
-  {
-  DisplayMessage("Deactivation..");
-  _delay_ms(1000);
-
-  ClearScreen();
-  DisplayMessage("Enter PIN\n MAX trials:4");
-
-  for (int i = 4; i > 0; i--)
-  {
-    if (DeactivateSystem())
-    {
-      ClearScreen();
-      DisplayMessage("Deactivated!");
-
-      _delay_ms(1000);
-      return true;
-    }
-    else
-    {
-      ClearScreen();
-      DisplayMessage("Wrong PIN!!");
-
-      _delay_ms(1000);
-
-      ClearScreen();
-      DisplayMessage("Enter PIN again");
-    }
-  }
-
-  return false;
-  }
-*/
-
-
 void DeactivateSystem()
 {
   SystemActive = false;
@@ -250,12 +201,11 @@ void IntrusionAlert(bool intrusion, bool room)
   {
     while (1)
     {
-      if (IDRequest())
+      if (!room)
       {
-        if(!room)
+        if (IDRequest())
         {
           DeactivateSystem();
-          IDRequest();
           return;
         }
       }
@@ -268,7 +218,7 @@ void IntrusionAlert(bool intrusion, bool room)
 void DetectMotion()
 {
   bool intrusion = false;
-  bool room=false;
+  bool room = false;
   switch (PIR_detectMotion())
   {
     case 1:
@@ -281,21 +231,21 @@ void DetectMotion()
       ClearScreen();
       DisplayMessage("RM1 Intrusion");
       intrusion = true;
-      room=true;
+      room = true;
       break;
 
     case 3:
       ClearScreen();
       DisplayMessage("RM2 Intrusion");
       intrusion = true;
-      room=true;
+      room = true;
       break;
 
     default:
       intrusion = false;
   }
 
-  IntrusionAlert(intrusion,room);
+  IntrusionAlert(intrusion, room);
 }
 
 void InitializeSystem()
@@ -347,6 +297,7 @@ void IdleSystem()
       if (PIN == GetInput())
       {
         SystemActive = true;
+        IDRequest();
         return;
       }
       else
@@ -390,7 +341,7 @@ void ActiveSystem()
       if (IDRequest())
       {
         DeactivateSystem();
-        IDRequest();
+        _delay_ms(1000);
         return;
       }
     }

@@ -42,6 +42,7 @@ String RFID_readID()
 
   UART_PORT.listen();
 
+
   if ( UART_PORT.isListening() )
   {
     while ( UART_PORT.available() > 0 )
@@ -63,7 +64,7 @@ String RFID_readID()
     }
   }
 
-
+  UART_PORT.flush();
   return Stored_TagID;
 
 }

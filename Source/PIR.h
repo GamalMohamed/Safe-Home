@@ -1,4 +1,4 @@
-#ifndef PIR_H_
+ #ifndef PIR_H_
 #define PIR_H_
 
 #include "common_macros.h"

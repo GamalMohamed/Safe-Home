@@ -35,7 +35,7 @@ inline uint8 GetKey()
   return KEYPAD_getkey();
 }
 
-String GetInput(int inputLength = 2)
+String GetInput(int inputLength = 6)
 {
   uint8 key = NOTHING;
   String input = "";
@@ -217,7 +217,7 @@ void IntrusionAlert(bool intrusion, bool room)
 
 void DetectMotion()
 {
-  bool intrusion = false;
+  bool intrusion = false; // to detect intrusion. 
   bool room = false;
   switch (PIR_detectMotion())
   {
@@ -246,7 +246,7 @@ void DetectMotion()
   }
 
   IntrusionAlert(intrusion, room);
-}
+} 
 
 void InitializeSystem()
 {
@@ -260,8 +260,8 @@ void InitializeSystem()
   SystemActive = false; // System by default is inactive
 
   // Manufacture's settings
-  Factory_PIN = "23";
-  PAC = "99";
+  Factory_PIN = "123456";
+  PAC = "333999";
   MasterCardID = "3800700780CF";
   StoredTags[0] = "01002BC8EB09";
 

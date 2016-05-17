@@ -1,3 +1,11 @@
+/*
+ * lcd.h
+ *
+ * Created: 5/14/2016 4:41:04 PM
+ * Author: Gamal Mohamed
+ */ 
+
+
 #ifndef LCD_H
 #define LCD_H
 

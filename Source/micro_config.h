@@ -1,3 +1,10 @@
+/*
+ * micro_config.h
+ *
+ * Created: 5/14/2016 4:37:52 PM
+ * Author: Gamal Mohamed
+ */ 
+
 #ifndef MICRO_CONFIG_H_
 #define MICRO_CONFIG_H_
 

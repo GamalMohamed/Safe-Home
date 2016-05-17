@@ -1,4 +1,11 @@
-#include "lcd.h"
+/*
+ * lcd.cpp
+ *
+ * Created: 5/14/2016 4:41:22 PM
+ * Author: Gamal Mohamed
+ */ 
+
+ #include "lcd.h"
 
 #define LCD_e_delay()   __asm__ __volatile__( "rjmp 1f\n 1:" );
 #define LCD_e_toggle()  toggle_e()

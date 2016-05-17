@@ -1,3 +1,10 @@
+/*
+ * common_macros.h
+ *
+ * Created: 5/14/2016 4:38:01 PM
+ * Author: Gamal Mohamed
+ */ 
+
 #ifndef COMMON_MACROS
 #define COMMON_MACROS
 

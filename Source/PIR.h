@@ -1,4 +1,11 @@
- #ifndef PIR_H_
+/*
+ * PIR.h
+ *
+ * Created: 5/14/2016 4:38:43 PM
+ * Author: Gamal Mohamed
+ */ 
+
+#ifndef PIR_H_
 #define PIR_H_
 
 #include "common_macros.h"

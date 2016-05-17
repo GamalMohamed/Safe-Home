@@ -1,3 +1,10 @@
+/*
+ * i2c.h
+ *
+ * Created: 5/14/2016 4:44:24 PM
+ * Author: Gamal Mohamed
+ */ 
+
 #ifndef _I2C_H
 #define _I2C_H
 
